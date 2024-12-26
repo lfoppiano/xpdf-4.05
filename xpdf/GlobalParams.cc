@@ -8,10 +8,6 @@
 
 #include <aconf.h>
 
-#ifdef USE_GCC_PRAGMAS
-#pragma implementation
-#endif
-
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -773,7 +769,9 @@ void GlobalParams::init(const char *cfgFileName, const char *cfgExecutablePath) 
   launchCommand = NULL;
   movieCommand = NULL;
   defaultPrinter = NULL;
-  mapNumericCharNames = gTrue;
+// LF: this is different from the xpdf 4.03,
+// however it is set True by default
+  mapNumericCharNames = gFalse;
   mapUnknownCharNames = gFalse;
   mapExtTrueTypeFontsViaUnicode = gTrue;
   useTrueTypeUnicodeMapping = gFalse;
