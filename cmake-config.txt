@@ -189,10 +189,10 @@ endif ()
 
 
 #--- look for zlib
-find_package(ZLIB)
+#find_package(ZLIB)
 
 #--- look for libpng
-find_package(PNG)
+#find_package(PNG)
 
 
 

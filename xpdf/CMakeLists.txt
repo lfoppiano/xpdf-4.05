@@ -78,7 +78,7 @@ add_library(xpdf_objs OBJECT
 set_property(TARGET xpdf_objs
              PROPERTY POSITION_INDEPENDENT_CODE True)
 
-#--- object files needed by XpdfWidget
+##--- object files needed by XpdfWidget
 
 #if ((QT4_FOUND OR Qt5Widgets_FOUND OR Qt6Widgets_FOUND)
 #    AND HAVE_SPLASH AND MULTITHREADED AND USE_EXCEPTIONS)
@@ -106,8 +106,8 @@ set_property(TARGET xpdf_objs
 #               PROPERTY POSITION_INDEPENDENT_CODE True)
 #endif ()
 
-#--- pdftops
-
+##--- pdftops
+#
 #if (HAVE_SPLASH)
 #  add_executable(pdftops
 #    $<TARGET_OBJECTS:xpdf_objs>
@@ -131,7 +131,6 @@ set_property(TARGET xpdf_objs
 #    PreScanOutputDev.cc
 #    PSOutputDev.cc
 #    pdftops.cc
-#    ${MANIFEST}
 #  )
 #  target_link_libraries(pdftops goo fofi
 #                        ${PAPER_LIBRARY}
@@ -143,7 +142,7 @@ set_property(TARGET xpdf_objs
 #install(FILES ${PROJECT_SOURCE_DIR}/doc/pdftops.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 #
 ##--- pdftotext
-#
+
 #add_executable(pdftotext
 #  $<TARGET_OBJECTS:xpdf_objs>
 #  TextOutputDev.cc
@@ -236,7 +235,6 @@ set_property(TARGET xpdf_objs
 #    ShadingImage.cc
 #    SplashOutputDev.cc
 #    pdftoppm.cc
-#    ${MANIFEST}
 #  )
 #  target_link_libraries(pdftoppm goo fofi splash
 #                        ${PAPER_LIBRARY}
@@ -249,7 +247,7 @@ set_property(TARGET xpdf_objs
 #  install(FILES ${PROJECT_SOURCE_DIR}/doc/pdftoppm.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 #endif ()
 #
-##--- pdftopng
+#--- pdftopng
 #
 #if (HAVE_SPLASH AND PNG_FOUND)
 #  add_executable(pdftopng
@@ -271,7 +269,7 @@ set_property(TARGET xpdf_objs
 #  install(FILES ${PROJECT_SOURCE_DIR}/doc/pdftopng.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 #endif ()
 #
-##--- pdfimages
+#--- pdfimages
 #
 #add_executable(pdfimages
 #  $<TARGET_OBJECTS:xpdf_objs>
@@ -291,9 +289,9 @@ set_property(TARGET xpdf_objs
 
 install(FILES ${PROJECT_SOURCE_DIR}/doc/xpdfrc.5 DESTINATION ${CMAKE_INSTALL_MANDIR}/man5)
 
-# build a static library with the stuff...
+# build a static library with the stuff... 
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/xpdf/lib)
-add_library(xpdf STATIC
+add_library(xpdf STATIC 
   AcroForm.cc
   Annot.cc
   Array.cc

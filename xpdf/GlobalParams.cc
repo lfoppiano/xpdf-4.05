@@ -769,8 +769,6 @@ void GlobalParams::init(const char *cfgFileName, const char *cfgExecutablePath) 
   launchCommand = NULL;
   movieCommand = NULL;
   defaultPrinter = NULL;
-// LF: this is different from the xpdf 4.03,
-// however it is set True by default
   mapNumericCharNames = gFalse;
   mapUnknownCharNames = gFalse;
   mapExtTrueTypeFontsViaUnicode = gTrue;
@@ -780,7 +778,6 @@ void GlobalParams::init(const char *cfgFileName, const char *cfgExecutablePath) 
   separateRotatedText = gFalse;
   createDefaultKeyBindings();
   popupMenuCmds = new GList();
-  tabStateFile = appendToPath(getHomeDir(), ".xpdf.tab-state");
   initStateFilePaths();
   saveSessionOnQuit = gTrue;
   savePageNumbers = gTrue;
@@ -1361,8 +1358,6 @@ void GlobalParams::parseLine(char *buf, GString *fileName, int line) {
       } else if (!cmd->cmp("fontpath") || !cmd->cmp("fontmap")) {
 	error(errConfig, -1,
 	      "The config file format has changed since Xpdf 0.9x");
-      } else if (!cmd->cmp("enableXFA")) {
-	error(errConfig, -1, "The enableXFA option is no longer used");
       }
     }
   }
