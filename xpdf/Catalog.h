@@ -15,6 +15,7 @@
 #include "GMutex.h"
 #endif
 #include "CharTypes.h"
+#include "Object.h"
 
 class GList;
 class PDFDoc;
