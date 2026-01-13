@@ -14,7 +14,7 @@
 #if MULTITHREADED
 #include "GMutex.h"
 #endif
-#include "Object.h"
+class Object;
 
 class XRef;
 
