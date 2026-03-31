@@ -1264,7 +1264,19 @@ Gfx8BitFont::Gfx8BitFont(XRef *xref, const char *tagA, Ref idA, GString *nameA,
   // where 'A' and 'B' are any letters, 'xx' is two hex digits, 'xxxx'
   // is four hex digits, and 'nn' is 2-4 decimal digits
   usedNumericHeuristic = gFalse;
-  if (missing && globalParams->getMapNumericCharNames()) {
+  // For Type3 fonts, glyph names in the Differences array are arbitrary
+  // CharProcs keys (e.g., "C4", "BT"), not semantic character names.
+  // Fall back to identity mapping (character code = Unicode code point)
+  // rather than the hex/numeric heuristic which would misinterpret
+  // names like "C4" as U+00C4 instead of the correct character.
+  if (missing && type == fontType3) {
+    for (code = 0; code < 256; ++code) {
+      if ((charName = enc[code]) && !toUnicode[code] &&
+	  strcmp(charName, ".notdef")) {
+	toUnicode[code] = code;
+      }
+    }
+  } else if (missing && globalParams->getMapNumericCharNames()) {
     for (code = 0; code < 256; ++code) {
       if ((charName = enc[code]) && !toUnicode[code] &&
 	  strcmp(charName, ".notdef")) {
@@ -1319,6 +1331,21 @@ Gfx8BitFont::Gfx8BitFont(XRef *xref, const char *tagA, Ref idA, GString *nameA,
   // precedence, but the other encoding info is allowed to fill in any
   // holes
   readToUnicodeCMap(fontDict, 8, ctu);
+
+  // For Type3 fonts, reject ToUnicode entries that map printable
+  // character codes to control characters (U+0001..U+001F). These
+  // indicate broken/minimal ToUnicode CMaps (e.g., some TeX-generated
+  // PDFs map 'c' at 0x63 to U+000D carriage return). Fall back to
+  // identity mapping for these entries.
+  if (type == fontType3) {
+    for (code = 0; code < 256; ++code) {
+      n = ctu->mapToUnicode((CharCode)code, uBuf, 8);
+      if (n == 1 && uBuf[0] > 0 && uBuf[0] < 0x0020) {
+	Unicode fallback = (Unicode)code;
+	ctu->setMapping((CharCode)code, &fallback, 1);
+      }
+    }
+  }
 
   // look for a Unicode-to-Unicode mapping
   if (name && (utu = globalParams->getUnicodeToUnicode(name))) {
