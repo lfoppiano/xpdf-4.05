@@ -268,6 +268,13 @@ static const char *macGlyphNames[258] = {
   "ccaron",         "dmacron"
 };
 
+const char *FoFiTrueType::getMacGlyphName(int gid) {
+  if (gid < 0 || gid >= 258) {
+    return NULL;
+  }
+  return macGlyphNames[gid];
+}
+
 //------------------------------------------------------------------------
 // FoFiTrueType
 //------------------------------------------------------------------------

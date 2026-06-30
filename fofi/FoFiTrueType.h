@@ -73,6 +73,12 @@ public:
   // font does not have a post table.
   int mapNameToGID(char *name);
 
+  // Returns the glyph name at index <gid> in the standard Macintosh
+  // glyph ordering (the 258-entry table used by 'post' format 1),
+  // or NULL if <gid> is out of range.  Useful for resolving glyph
+  // names of the form "gNNN", where NNN is an index into this ordering.
+  static const char *getMacGlyphName(int gid);
+
   // Return the mapping from CIDs to GIDs, and return the number of
   // CIDs in *<nCIDs>.  This is only useful for CID fonts.  (Only
   // useful for OpenType CFF fonts.)

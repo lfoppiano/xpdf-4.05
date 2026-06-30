@@ -930,6 +930,89 @@ char *GfxFont::readEmbFontFile(XRef *xref, int *len) {
 // Gfx8BitFont
 //------------------------------------------------------------------------
 
+// Microsoft "MSTT31c..." subset fonts (Type1/Type1C and Type3) name their
+// glyphs 'G' + the glyph index in *hex*, with the glyph ordering shifted by
+// one (glyph 0 / .notdef dropped): e.g. "G34" (0x34) is Mac glyph 0x35 = 'R'.
+// An optional ".suffix" (e.g. "G46._") disambiguates duplicate glyphs and is
+// ignored.  These fonts carry no ToUnicode, so without this the text comes out
+// garbled - the pass-2 hex heuristic misreads "G34" as the character code '4'.
+//
+// Returns the recovered Unicode value, or 0 if <charName> is not such a name.
+static Unicode mapHexGlyphIndexName(const char *charName) {
+  const char *p, *macName;
+
+  if (charName[0] != 'G' || !isxdigit(charName[1] & 0xff)) {
+    return 0;
+  }
+  for (p = charName + 1; isxdigit(*p & 0xff); ++p) ;
+  if (*p != '\0' && *p != '.') {
+    return 0;
+  }
+  if (!(macName = FoFiTrueType::getMacGlyphName(
+	    (int)strtol(charName + 1, NULL, 16) + 1))) {
+    return 0;
+  }
+  return globalParams->mapNameToUnicode(macName);
+}
+
+// Some subsetting tools (e.g. MS "MSTT31cXXX" fonts) name glyphs with a
+// prefix followed by the glyph *index* into the standard Macintosh glyph
+// ordering (e.g. "g50", "cid50", "glyph50"), not a semantic character name.
+// The generic numeric heuristic in pass 2 below misreads "g50" as the code
+// point U+0032 ('2') instead of the intended 'O'.  This helper recognises
+// those glyph-index names and resolves them through the standard Mac glyph
+// names to recover the correct Unicode value.
+//
+// Returns the recovered Unicode value, or 0 if <charName> is not a glyph-
+// index name that can be resolved this way.
+static Unicode mapGlyphIndexName(const char *charName) {
+  // Glyph-index naming conventions used by various subsetters: a known
+  // prefix followed by the glyph index in the standard Macintosh glyph
+  // ordering.  Listed longest-first so the longest matching prefix wins
+  // (e.g. "cid" before "c"), and matched case-insensitively.
+  static const char *prefixes[] = { "glyph", "index", "cid", "g", "c" };
+  const char *digits, *p, *macName;
+  Unicode u;
+  int i, j;
+
+  // The uppercase 'G' + hex convention must be tested before the
+  // case-insensitive 'g' prefix below (which would read the suffix as a
+  // decimal index) and before the pass-2 hex heuristic.
+  if ((u = mapHexGlyphIndexName(charName))) {
+    return u;
+  }
+
+  digits = NULL;
+  for (i = 0; i < (int)(sizeof(prefixes) / sizeof(prefixes[0])); ++i) {
+    for (j = 0; prefixes[i][j]; ++j) {
+      if (tolower(charName[j] & 0xff) != prefixes[i][j]) {
+	break;
+      }
+    }
+    if (!prefixes[i][j]) {		// whole prefix matched
+      digits = charName + j;
+      break;
+    }
+  }
+
+  // require at least one trailing character, all ASCII digits
+  if (!digits || !*digits) {
+    return 0;
+  }
+  for (p = digits; *p; ++p) {
+    if (!isdigit(*p & 0xff)) {
+      return 0;
+    }
+  }
+
+  // resolve the glyph index through the standard Mac glyph ordering,
+  // then map the resulting glyph name to Unicode
+  if (!(macName = FoFiTrueType::getMacGlyphName(atoi(digits)))) {
+    return 0;
+  }
+  return globalParams->mapNameToUnicode(macName);
+}
+
 Gfx8BitFont::Gfx8BitFont(XRef *xref, const char *tagA, Ref idA, GString *nameA,
 			 GfxFontType typeA, Ref embFontIDA, Dict *fontDict):
   GfxFont(tagA, idA, nameA, typeA, embFontIDA)
@@ -1268,18 +1351,29 @@ Gfx8BitFont::Gfx8BitFont(XRef *xref, const char *tagA, Ref idA, GString *nameA,
   // CharProcs keys (e.g., "C4", "BT"), not semantic character names.
   // Fall back to identity mapping (character code = Unicode code point)
   // rather than the hex/numeric heuristic which would misinterpret
-  // names like "C4" as U+00C4 instead of the correct character.
+  // names like "C4" as U+00C4 instead of the correct character.  The one
+  // exception is the unambiguous MSTT "GNN" hex glyph-index naming (e.g. a
+  // superscript "th" set in a Type3 font), which does carry real characters.
   if (missing && type == fontType3) {
     for (code = 0; code < 256; ++code) {
       if ((charName = enc[code]) && !toUnicode[code] &&
 	  strcmp(charName, ".notdef")) {
-	toUnicode[code] = code;
+	Unicode gu = mapHexGlyphIndexName(charName);
+	toUnicode[code] = gu ? gu : (Unicode)code;
       }
     }
   } else if (missing && globalParams->getMapNumericCharNames()) {
     for (code = 0; code < 256; ++code) {
       if ((charName = enc[code]) && !toUnicode[code] &&
 	  strcmp(charName, ".notdef")) {
+	// glyph-index names ("gNNN") must be resolved through the standard
+	// Mac glyph ordering, not the generic numeric heuristic below
+	Unicode gu = mapGlyphIndexName(charName);
+	if (gu) {
+	  toUnicode[code] = gu;
+	  usedNumericHeuristic = gTrue;
+	  continue;
+	}
 	n = (int)strlen(charName);
 	code2 = -1;
 	if (hex && n == 3 && isalpha(charName[0] & 0xff) &&
